@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESP32</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ESP32">
+<link rel="apple-touch-icon" href="icon.png">
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.16.1/dist/mqtt.min.js"></script>
+<style>
+  body { font-family: -apple-system, sans-serif; text-align: center; padding: 40px 16px; background: #f2f2f2; }
+  button { width: 100%; max-width: 300px; padding: 20px; margin: 8px 0; font-size: 20px;
+           border: none; border-radius: 12px; color: white; }
+  #on  { background: #2e7d32; }
+  #off { background: #c62828; }
+  #odpowiedz { font-size: 22px; margin-top: 24px; }
+</style>
+</head>
+<body>
+  <h1>Sterowanie ESP32</h1>
+  <p id="status">Łączenie...</p>
+
+  <button id="on">LED ON</button><br>
+  <button id="off">LED OFF</button>
+
+  <p id="odpowiedz">—</p>
+
+<script>
+  const ID = "ident";
+
+  const tematKomend = "szkola/esp32/" + ID + "/cmd";
+  const tematOdpowiedzi = "szkola/esp32/" + ID + "/msg";
+
+  const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
+
+  client.on("connect", function () {
+    document.getElementById("status").textContent = "Połączono";
+    client.subscribe(tematOdpowiedzi);
+  });
+
+  client.on("close", function () {
+    document.getElementById("status").textContent = "Brak połączenia";
+  });
+  client.on("message", function (temat, wiadomosc) {
+    document.getElementById("odpowiedz").textContent = wiadomosc.toString();
+  });
+  document.getElementById("on").onclick = function () {
+    client.publish(tematKomend, "ON");
+  };
+  document.getElementById("off").onclick = function () {
+    client.publish(tematKomend, "OFF");
+  };
+</script>
+</body>
+</html>
