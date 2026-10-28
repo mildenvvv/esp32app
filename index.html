@@ -2,48 +2,87 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ESP32</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ESP32">
 <link rel="apple-touch-icon" href="icon.png">
+<meta name="theme-color" content="#0f1720">
 <script src="https://cdn.jsdelivr.net/npm/mqtt@5.16.1/dist/mqtt.min.js"></script>
 <style>
-  body { font-family: -apple-system, sans-serif; text-align: center; padding: 40px 16px; background: #f2f2f2; }
-  button { width: 100%; max-width: 300px; padding: 20px; margin: 8px 0; font-size: 20px;
-           border: none; border-radius: 12px; color: white; }
-  #on  { background: #2e7d32; }
-  #off { background: #c62828; }
-  #odpowiedz { font-size: 22px; margin-top: 24px; }
+  :root {
+    --bg: #f4f6f8; --card: #ffffff; --text: #16202a; --muted: #5d6b78; --line: #dde3e9;
+    --accent: #0b6bcb; --on: #e5322d; --ok: #1f9d55; --bad: #b42318; --btn: #eef2f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f1720; --card: #17212b; --text: #e8eef4; --muted: #93a1ae; --line: #26323e;
+            --accent: #4ea1f3; --btn: #22303c; }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
+  main { max-width: 480px; margin: 0 auto; display: grid; gap: 14px; }
+  h1 { font-size: 22px; margin: 4px 0 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bad); }
+  .dot.ok { background: var(--ok); }
+  .ledwrap { display: grid; place-items: center; padding: 10px 0 4px; gap: 8px; }
+  .led { width: 92px; height: 92px; border-radius: 50%; background: #5a2220;
+         border: 4px solid rgba(0,0,0,.15); transition: background .15s, box-shadow .15s; }
+  .led.on { background: var(--on); box-shadow: 0 0 36px 8px rgba(229,50,45,.55); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 12px; padding: 16px 10px;
+           background: var(--btn); color: var(--text); }
+  button.primary { background: var(--accent); color: #fff; }
+  button:active { transform: scale(.98); }
+  .muted { color: var(--muted); font-size: 13px; }
+  .msg { font-size: 17px; min-height: 1.4em; }
 </style>
 </head>
 <body>
+<main>
   <h1>Sterowanie ESP32</h1>
-  <p id="status">Łączenie...</p>
 
-  <button id="on">LED ON</button><br>
-  <button id="off">LED OFF</button>
+  <div class="card">
+    <span class="pill"><span id="kropka" class="dot"></span><span id="status">Łączenie...</span></span>
+    <div class="ledwrap">
+      <div id="led" class="led"></div>
+    </div>
+  </div>
 
-  <p id="odpowiedz">—</p>
+  <div class="card grid">
+    <button class="primary" id="on">LED ON</button>
+    <button id="off">LED OFF</button>
+  </div>
+
+  <div class="card">
+    <div class="muted">Odpowiedź ESP32</div>
+    <div class="msg" id="odpowiedz">—</div>
+  </div>
+</main>
 
 <script>
   const ID = "ident";
-
   const tematKomend = "szkola/esp32/" + ID + "/cmd";
   const tematOdpowiedzi = "szkola/esp32/" + ID + "/msg";
-
   const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
-
   client.on("connect", function () {
     document.getElementById("status").textContent = "Połączono";
+    document.getElementById("kropka").className = "dot ok";
     client.subscribe(tematOdpowiedzi);
   });
-
   client.on("close", function () {
     document.getElementById("status").textContent = "Brak połączenia";
+    document.getElementById("kropka").className = "dot";
   });
   client.on("message", function (temat, wiadomosc) {
-    document.getElementById("odpowiedz").textContent = wiadomosc.toString();
+    const tekst = wiadomosc.toString();
+    document.getElementById("odpowiedz").textContent = tekst;
+    if (tekst == "LED wlaczona") document.getElementById("led").className = "led on";
+    if (tekst == "LED wylaczona") document.getElementById("led").className = "led";
   });
   document.getElementById("on").onclick = function () {
     client.publish(tematKomend, "ON");
